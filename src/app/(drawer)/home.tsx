@@ -9,58 +9,32 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import type { Categoria } from '../../data/productos';
 import { useProductos } from '../../context/ProductosContext';
 import { useSesion } from '../../context/SesionContext';
 import ProductCard from '../../components/ProductCard';
+import ProductImage from '../../components/ProductImage';
 import FloatingCarrito from '../../components/FloatingCarrito';
 import Paginador from '../../components/Paginador';
 
 const DESTACADOS_COUNT = 8;
 const POR_PAGINA = 8;
 
-interface TileProps {
-  emoji: string;
-  nombre: string;
-  count: number;
-  color: string;
-  fondo: string;
-  onPress: () => void;
-}
-
-function TileCategoria({ emoji, nombre, count, color, fondo, onPress }: TileProps) {
-  return (
-    <TouchableOpacity
-      className="w-[48.5%] rounded-3xl p-4"
-      style={{ backgroundColor: fondo }}
-      activeOpacity={0.75}
-      onPress={onPress}
-    >
-      <View className="flex-row items-center justify-between">
-        <Text className="text-3xl">{emoji}</Text>
-        <Ionicons name="arrow-forward" size={17} color={color} />
-      </View>
-      <Text className="mt-3 text-[16px] font-bold text-neutral-900">
-        {nombre}
-      </Text>
-      <Text className="mt-0.5 text-xs" style={{ color }}>
-        {count} {count === 1 ? 'producto' : 'productos'}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 export default function Home() {
-  const { productos, secciones, buscarSeccion } = useProductos();
+  const { productos, secciones, productosDeSeccion } = useProductos();
   const { rol } = useSesion();
   const esAdmin = rol === 'admin';
   const [busqueda, setBusqueda] = useState('');
 
-  const productosPorCategoria = (categoria: Categoria) =>
-    productos.filter((p) => {
-      const seccion = buscarSeccion(p.seccionId);
-      return seccion?.categoria === categoria;
-    }).length;
+  const seccionesConCount = useMemo(
+    () =>
+      [...secciones]
+        .sort((a, b) => a.nombre.localeCompare(b.nombre))
+        .map((seccion) => ({
+          seccion,
+          count: productosDeSeccion(seccion.id).length,
+        })),
+    [secciones, productosDeSeccion]
+  );
 
   const filtrados = useMemo(() => {
     const normalizada = busqueda.trim().toLowerCase();
@@ -71,11 +45,6 @@ export default function Home() {
       p.nombre.toLowerCase().includes(normalizada)
     );
   }, [busqueda, productos]);
-
-  const seccionesOrdenadas = useMemo(
-    () => [...secciones].sort((a, b) => a.nombre.localeCompare(b.nombre)),
-    [secciones]
-  );
 
   const buscando = busqueda.trim().length > 0;
 
@@ -138,46 +107,51 @@ export default function Home() {
           )}
         </View>
 
-        <View className="mb-6 flex-row justify-between">
-          <TileCategoria
-            emoji="💻"
-            nombre="Tecnología"
-            count={productosPorCategoria('tecnologia')}
-            color="#4338ca"
-            fondo="#eef2ff"
-            onPress={() => router.push('/(drawer)/productos')}
-          />
-          <TileCategoria
-            emoji="👕"
-            nombre="Ropa"
-            count={productosPorCategoria('ropa')}
-            color="#0f766e"
-            fondo="#f0fdfa"
-            onPress={() => router.push('/(drawer)/ropa')}
-          />
+        <View className="mb-3 flex-row items-center justify-between">
+          <Text className="text-lg font-bold tracking-tight text-neutral-900">
+            Categorías
+          </Text>
+          <Text className="text-xs font-medium text-neutral-400">
+            {secciones.length} disponibles
+          </Text>
         </View>
 
-        {!buscando && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: 4 }}
-          >
-            {seccionesOrdenadas.map((seccion) => (
-              <TouchableOpacity
-                key={seccion.id}
-                className="mr-2.5 flex-row items-center rounded-full border border-neutral-200 bg-white px-4 py-2.5"
-                activeOpacity={0.7}
-                onPress={() => router.push(`/seccion/${seccion.id}`)}
-              >
-                <Text className="mr-1.5 text-base">{seccion.emoji}</Text>
-                <Text className="text-[13px] font-semibold text-neutral-700">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 4, paddingRight: 4 }}
+          className="mb-6"
+        >
+          {seccionesConCount.map(({ seccion, count }) => (
+            <TouchableOpacity
+              key={seccion.id}
+              className="mr-2.5 w-[150px] overflow-hidden rounded-2xl border border-neutral-200 bg-white"
+              activeOpacity={0.75}
+              onPress={() => router.push(`/seccion/${seccion.id}`)}
+            >
+              <View className="h-[86px] w-full bg-neutral-100">
+                <ProductImage
+                  uri={seccion.imagen}
+                  emoji={seccion.emoji}
+                  className="h-full w-full"
+                  fallbackClassName="text-4xl"
+                  label={seccion.nombre}
+                />
+              </View>
+              <View className="p-3">
+                <Text
+                  className="text-[13px] font-semibold text-neutral-900"
+                  numberOfLines={1}
+                >
                   {seccion.nombre}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
+                <Text className="mt-0.5 text-[11px] text-neutral-400">
+                  {count} {count === 1 ? 'producto' : 'productos'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <View className="p-5 pt-0">
