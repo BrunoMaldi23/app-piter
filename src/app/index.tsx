@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,8 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSesion } from '../context/SesionContext';
 
 const CREDENCIALES_CLIENTE = {
-  correo: 'joseignacioriverarios33@gmail.com',
-  password: 'GTR20200',
+  correo: 'usuario@app.cl',
+  password: '1234',
 };
 
 const CREDENCIALES_ADMIN = {
@@ -24,17 +25,25 @@ const CREDENCIALES_ADMIN = {
   password: '2323',
 };
 
+const CORREO_CONTACTO = 'brunopsg061@gmail.com';
+
 export default function Login() {
-  const [correo, setCorreo] = useState(CREDENCIALES_CLIENTE.correo);
-  const [password, setPassword] = useState(CREDENCIALES_CLIENTE.password);
+  const [correo, setCorreo] = useState('');
+  const [password, setPassword] = useState('');
   const [mostrarPassword, setMostrarPassword] = useState(false);
-  const { iniciarSesion } = useSesion();
+  const { rol, iniciarSesion } = useSesion();
+
+  useEffect(() => {
+    if (rol) {
+      router.replace('/(drawer)/home');
+    }
+  }, [rol]);
 
   const ingresar = () => {
     const correoLimpio = correo.trim().toLowerCase();
 
     if (!correoLimpio || !password) {
-      Alert.alert('Campos incompletos', 'Ingresa tu correo y contraseña.');
+      Alert.alert('Campos incompletos', 'Ingresa tu usuario y contraseña.');
       return;
     }
 
@@ -43,7 +52,6 @@ export default function Login() {
       password === CREDENCIALES_ADMIN.password
     ) {
       iniciarSesion('admin');
-      router.replace('/(drawer)/admin');
       return;
     }
 
@@ -53,13 +61,16 @@ export default function Login() {
     ) {
       Alert.alert(
         'Credenciales incorrectas',
-        'El correo o la contraseña no son válidos. Intenta nuevamente.'
+        'El usuario o la contraseña no son válidos. Intenta nuevamente.'
       );
       return;
     }
 
     iniciarSesion('cliente');
-    router.replace('/(drawer)/home');
+  };
+
+  const contactar = () => {
+    Linking.openURL(`mailto:${CORREO_CONTACTO}?subject=Contacto%20MiniStore`);
   };
 
   return (
@@ -101,15 +112,14 @@ export default function Login() {
             </View>
 
             <Text className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-neutral-400">
-              Correo electrónico
+              Usuario
             </Text>
             <View className="mb-4 flex-row items-center rounded-xl border border-neutral-200 bg-neutral-50 px-4">
-              <Ionicons name="mail-outline" size={18} color="#a3a3a3" style={{ marginRight: 8 }} />
+              <Ionicons name="person-outline" size={18} color="#a3a3a3" style={{ marginRight: 8 }} />
               <TextInput
                 className="h-12 flex-1 text-[15px] text-neutral-900"
-                placeholder="tucorreo@correo.com"
+                placeholder="Ingresa tu usuario"
                 placeholderTextColor="#a3a3a3"
-                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={correo}
@@ -124,7 +134,7 @@ export default function Login() {
               <Ionicons name="lock-closed-outline" size={18} color="#a3a3a3" style={{ marginRight: 8 }} />
               <TextInput
                 className="h-12 flex-1 text-[15px] text-neutral-900"
-                placeholder="••••••••"
+                placeholder="Ingresa tu contraseña"
                 placeholderTextColor="#a3a3a3"
                 secureTextEntry={!mostrarPassword}
                 value={password}
@@ -160,15 +170,16 @@ export default function Login() {
           </View>
 
           <View className="mt-6 items-center">
-            <Text className="mb-1.5 text-xs text-neutral-400">
-              ¿No tienes cuenta? Contáctanos
+            <Text className="text-xs text-neutral-400">
+              ¿No tienes cuenta?{' '}
             </Text>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => Alert.alert('Contacto', 'brunopsg061@gmail.com')}
+              onPress={contactar}
+              accessibilityLabel="Contáctanos por correo"
             >
-              <Text className="text-sm font-semibold text-neutral-900">
-                brunopsg061@gmail.com
+              <Text className="text-sm font-bold text-neutral-900 underline">
+                Contáctanos
               </Text>
             </TouchableOpacity>
           </View>

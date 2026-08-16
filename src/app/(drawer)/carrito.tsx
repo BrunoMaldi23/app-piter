@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -21,49 +20,75 @@ export default function Carrito() {
     incrementar,
     disminuir,
     eliminar,
-    vaciar,
   } = useCarrito();
 
   const pagar = () => {
-    Alert.alert(
-      'Compra realizada',
-      `Completaste tu compra por ${formatoPrecio(total)}. ¡Gracias por comprar en MiniStore!`,
-      [
-        {
-          text: 'OK',
-          onPress: vaciar,
-        },
-      ]
-    );
+    router.push('/pago');
   };
 
   if (items.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center bg-neutral-50 p-8">
-        <View className="mb-5 h-24 w-24 items-center justify-center rounded-3xl bg-neutral-100">
-          <Ionicons name="cart-outline" size={44} color="#a3a3a3" />
-        </View>
-        <Text className="text-lg font-semibold text-neutral-900">
-          Tu carrito está vacío
-        </Text>
-        <Text className="mt-1.5 text-center text-sm leading-6 text-neutral-500">
-          Agrega productos desde las categorías para comenzar tu compra.
-        </Text>
-        <TouchableOpacity
-          className="mt-6 h-12 items-center justify-center rounded-xl bg-neutral-900 px-6"
-          activeOpacity={0.8}
-          onPress={() => router.push('/(drawer)/productos')}
-        >
-          <Text className="text-[15px] font-semibold text-white">
-            Explorar productos
+      <View className="flex-1 bg-neutral-50">
+        <View className="mt-3 flex-row items-center gap-3 px-5">
+          <TouchableOpacity
+            className="h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white"
+            activeOpacity={0.7}
+            onPress={() => router.back()}
+            accessibilityLabel="Volver atrás"
+          >
+            <Ionicons name="chevron-back" size={20} color="#171717" />
+          </TouchableOpacity>
+          <Text className="text-lg font-bold tracking-tight text-neutral-900">
+            Carrito
           </Text>
-        </TouchableOpacity>
+        </View>
+        <View className="flex-1 items-center justify-center p-8">
+          <View className="mb-5 h-24 w-24 items-center justify-center rounded-3xl bg-neutral-100">
+            <Ionicons name="cart-outline" size={44} color="#a3a3a3" />
+          </View>
+          <Text className="text-lg font-semibold text-neutral-900">
+            Tu carrito está vacío
+          </Text>
+          <Text className="mt-1.5 text-center text-sm leading-6 text-neutral-500">
+            Agrega productos desde las categorías para comenzar tu compra.
+          </Text>
+          <TouchableOpacity
+            className="mt-6 h-12 items-center justify-center rounded-xl bg-neutral-900 px-6"
+            activeOpacity={0.8}
+            onPress={() => router.back()}
+          >
+            <Text className="text-[15px] font-semibold text-white">
+              Volver
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   return (
     <View className="flex-1 bg-neutral-50">
+      <View className="mt-3 flex-row items-center gap-3 px-5 pb-2">
+        <TouchableOpacity
+          className="h-10 w-10 items-center justify-center rounded-xl border border-neutral-200 bg-white"
+          activeOpacity={0.7}
+          onPress={() => router.back()}
+          accessibilityLabel="Volver atrás"
+        >
+          <Ionicons name="chevron-back" size={20} color="#171717" />
+        </TouchableOpacity>
+        <View className="flex-1">
+          <Text className="text-lg font-bold tracking-tight text-neutral-900">
+            Carrito
+          </Text>
+          <Text className="text-xs text-neutral-400">
+            Resumen de tu compra
+          </Text>
+        </View>
+        <Text className="text-lg font-bold text-neutral-900">
+          {formatoPrecio(total)}
+        </Text>
+      </View>
       <FlatList
         data={items}
         keyExtractor={(item) => item.producto.id}

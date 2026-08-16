@@ -13,6 +13,7 @@ import type { Categoria } from '../data/productos';
 import { INFO_CATEGORIAS } from '../data/productos';
 import { useProductos } from '../context/ProductosContext';
 import ProductImage from './ProductImage';
+import FloatingCarrito from './FloatingCarrito';
 
 interface ListaSeccionesProps {
   titulo: string;
@@ -126,6 +127,8 @@ export default function ListaSecciones({
           </View>
         }
       />
+
+      <FloatingCarrito />
     </View>
   );
 }

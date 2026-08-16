@@ -27,6 +27,14 @@ export default function RootLayout() {
                   headerShown: false,
                 }}
               />
+
+              <Stack.Screen
+                name="pago"
+                options={{
+                  headerShown: false,
+                  presentation: 'card',
+                }}
+              />
             </Stack>
           </FavoritosProvider>
         </CarritoProvider>

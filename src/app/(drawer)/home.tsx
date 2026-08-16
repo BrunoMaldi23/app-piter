@@ -1,214 +1,244 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
+import type { Categoria } from '../../data/productos';
 import { useProductos } from '../../context/ProductosContext';
 import { useSesion } from '../../context/SesionContext';
-import { useCarrito } from '../../context/CarritoContext';
-import { formatoPrecio } from '../../utils/formato';
-import ProductImage from '../../components/ProductImage';
+import ProductCard from '../../components/ProductCard';
+import FloatingCarrito from '../../components/FloatingCarrito';
+import Paginador from '../../components/Paginador';
 
-const DESTACADOS_COUNT = 6;
+const DESTACADOS_COUNT = 8;
+const POR_PAGINA = 8;
+
+interface TileProps {
+  emoji: string;
+  nombre: string;
+  count: number;
+  color: string;
+  fondo: string;
+  onPress: () => void;
+}
+
+function TileCategoria({ emoji, nombre, count, color, fondo, onPress }: TileProps) {
+  return (
+    <TouchableOpacity
+      className="w-[48.5%] rounded-3xl p-4"
+      style={{ backgroundColor: fondo }}
+      activeOpacity={0.75}
+      onPress={onPress}
+    >
+      <View className="flex-row items-center justify-between">
+        <Text className="text-3xl">{emoji}</Text>
+        <Ionicons name="arrow-forward" size={17} color={color} />
+      </View>
+      <Text className="mt-3 text-[16px] font-bold text-neutral-900">
+        {nombre}
+      </Text>
+      <Text className="mt-0.5 text-xs" style={{ color }}>
+        {count} {count === 1 ? 'producto' : 'productos'}
+      </Text>
+    </TouchableOpacity>
+  );
+}
 
 export default function Home() {
-  const { productos } = useProductos();
-  const { rol, cerrarSesion } = useSesion();
-  const { cantidadTotal } = useCarrito();
-
+  const { productos, secciones, buscarSeccion } = useProductos();
+  const { rol } = useSesion();
   const esAdmin = rol === 'admin';
-  const destacados = productos.slice(0, DESTACADOS_COUNT);
+  const [busqueda, setBusqueda] = useState('');
 
-  const categorias = [
-    {
-      nombre: 'Tecnología',
-      emoji: '💻',
-      color: '#6366f1',
-      fondo: '#eef2ff',
-      ruta: '/(drawer)/productos',
-    },
-    {
-      nombre: 'Ropa',
-      emoji: '👕',
-      color: '#0d9488',
-      fondo: '#f0fdfa',
-      ruta: '/(drawer)/ropa',
-    },
-    {
-      nombre: 'Favoritos',
-      emoji: '🤍',
-      color: '#e11d48',
-      fondo: '#fff1f2',
-      ruta: '/(drawer)/favoritos',
-    },
-    {
-      nombre: 'Carrito',
-      emoji: '🛒',
-      color: '#f59e0b',
-      fondo: '#fffbeb',
-      ruta: '/(drawer)/carrito',
-    },
-    ...(esAdmin
-      ? [
-          {
-            nombre: 'Administración',
-            emoji: '⚙️',
-            color: '#404040',
-            fondo: '#f5f5f5',
-            ruta: '/(drawer)/admin',
-          },
-        ]
-      : []),
-  ];
+  const productosPorCategoria = (categoria: Categoria) =>
+    productos.filter((p) => {
+      const seccion = buscarSeccion(p.seccionId);
+      return seccion?.categoria === categoria;
+    }).length;
+
+  const filtrados = useMemo(() => {
+    const normalizada = busqueda.trim().toLowerCase();
+    if (!normalizada) {
+      return productos.slice(0, DESTACADOS_COUNT);
+    }
+    return productos.filter((p) =>
+      p.nombre.toLowerCase().includes(normalizada)
+    );
+  }, [busqueda, productos]);
+
+  const seccionesOrdenadas = useMemo(
+    () => [...secciones].sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    [secciones]
+  );
+
+  const buscando = busqueda.trim().length > 0;
+
+  const totalPaginas = buscando
+    ? Math.ceil(filtrados.length / POR_PAGINA)
+    : Math.ceil(Math.min(filtrados.length, DESTACADOS_COUNT) / POR_PAGINA);
+
+  const [pagina, setPagina] = useState(1);
+  const paginaSegura = Math.min(pagina, Math.max(totalPaginas, 1));
+
+  const visibles = useMemo(() => {
+    const inicio = (paginaSegura - 1) * POR_PAGINA;
+    return filtrados.slice(inicio, inicio + POR_PAGINA);
+  }, [filtrados, paginaSegura]);
+
+  const cambiarBusqueda = (texto: string) => {
+    setBusqueda(texto);
+    setPagina(1);
+  };
 
   return (
-    <ScrollView
-      className="flex-1 bg-neutral-50"
-      contentContainerStyle={{ paddingBottom: 24 }}
-      showsVerticalScrollIndicator={false}
-    >
+    <View className="flex-1 bg-neutral-50">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 28 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       <View className="p-5">
-        <View className="mt-2 mb-5 flex-row items-center justify-between">
+        <View className="mt-1 mb-4 flex-row items-center justify-between">
           <View className="flex-1">
             <Text className="text-2xl font-bold tracking-tight text-neutral-900">
               Hola, {esAdmin ? 'Administrador' : 'usuario'} 👋
             </Text>
-            <Text className="mt-1 text-[15px] text-neutral-500">
-              Bienvenido de vuelta a MiniStore.
+            <Text className="mt-0.5 text-[15px] text-neutral-500">
+              ¿Qué buscamos hoy?
             </Text>
           </View>
-          <TouchableOpacity
-            className="h-11 w-11 items-center justify-center rounded-full bg-white"
-            activeOpacity={0.7}
-            onPress={() => {
-              cerrarSesion();
-              router.replace('/');
-            }}
-            accessibilityLabel="Cerrar sesión"
-          >
-            <Ionicons name="log-out-outline" size={20} color="#525252" />
-          </TouchableOpacity>
         </View>
 
-        <View className="mb-7 overflow-hidden rounded-3xl bg-neutral-900">
-          <View className="flex-row items-center justify-between p-5">
-            <View className="flex-1 pr-4">
-              <View className="mb-2 self-start rounded-full bg-white/10 px-2.5 py-1">
-                <Text className="text-[11px] font-semibold uppercase tracking-widest text-white/80">
-                  Nuevo catálogo 2026
-                </Text>
-              </View>
-              <Text className="text-xl font-bold leading-tight tracking-tight text-white">
-                Lo mejor en tecnología y moda, al mejor precio.
-              </Text>
-              <TouchableOpacity
-                className="mt-4 h-10 flex-row items-center justify-center gap-1.5 self-start rounded-xl bg-white px-4"
-                style={{ gap: 6 }}
-                activeOpacity={0.85}
-                onPress={() => router.push('/(drawer)/productos')}
-              >
-                <Text className="text-[13px] font-semibold text-neutral-900">
-                  Ver catálogo
-                </Text>
-                <Ionicons name="arrow-forward" size={15} color="#171717" />
-              </TouchableOpacity>
-            </View>
-            <View className="h-20 w-20 items-center justify-center rounded-2xl bg-white/10">
-              <Ionicons name="sparkles" size={36} color="#e0e7ff" />
-            </View>
-          </View>
-        </View>
-
-        <View className="mb-6 flex-row flex-wrap justify-between">
-          {categorias.map((cat) => (
+        <View className="mb-5 flex-row items-center rounded-2xl border border-neutral-200 bg-white px-4">
+          <Ionicons name="search" size={19} color="#a3a3a3" style={{ marginRight: 8 }} />
+          <TextInput
+            className="h-12 flex-1 text-[15px] text-neutral-900"
+            placeholder="Busca productos, categorías..."
+            placeholderTextColor="#a3a3a3"
+            value={busqueda}
+            onChangeText={cambiarBusqueda}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+          />
+          {buscando && (
             <TouchableOpacity
-              key={cat.nombre}
-              className="mb-3 w-[48.5%] flex-row items-center rounded-2xl border border-neutral-200 bg-white p-3.5"
-              activeOpacity={0.75}
-              onPress={() => router.push(cat.ruta as never)}
+              onPress={() => setBusqueda('')}
+              accessibilityLabel="Limpiar búsqueda"
             >
-              <View
-                className="mr-3 h-10 w-10 items-center justify-center rounded-xl"
-                style={{ backgroundColor: cat.fondo }}
-              >
-                <Text className="text-xl">{cat.emoji}</Text>
-              </View>
-              <Text className="flex-1 text-[14px] font-semibold text-neutral-900">
-                {cat.nombre}
-              </Text>
-              {cat.nombre === 'Carrito' && cantidadTotal > 0 && (
-                <View className="h-5 min-w-5 items-center justify-center rounded-full bg-neutral-900 px-1.5">
-                  <Text className="text-[10px] font-bold text-white">
-                    {cantidadTotal}
-                  </Text>
-                </View>
-              )}
-              <Ionicons name="chevron-forward" size={16} color="#d4d4d4" />
+              <Ionicons name="close-circle" size={18} color="#a3a3a3" />
             </TouchableOpacity>
-          ))}
+          )}
         </View>
 
+        <View className="mb-6 flex-row justify-between">
+          <TileCategoria
+            emoji="💻"
+            nombre="Tecnología"
+            count={productosPorCategoria('tecnologia')}
+            color="#4338ca"
+            fondo="#eef2ff"
+            onPress={() => router.push('/(drawer)/productos')}
+          />
+          <TileCategoria
+            emoji="👕"
+            nombre="Ropa"
+            count={productosPorCategoria('ropa')}
+            color="#0f766e"
+            fondo="#f0fdfa"
+            onPress={() => router.push('/(drawer)/ropa')}
+          />
+        </View>
+
+        {!buscando && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingRight: 4 }}
+          >
+            {seccionesOrdenadas.map((seccion) => (
+              <TouchableOpacity
+                key={seccion.id}
+                className="mr-2.5 flex-row items-center rounded-full border border-neutral-200 bg-white px-4 py-2.5"
+                activeOpacity={0.7}
+                onPress={() => router.push(`/seccion/${seccion.id}`)}
+              >
+                <Text className="mr-1.5 text-base">{seccion.emoji}</Text>
+                <Text className="text-[13px] font-semibold text-neutral-700">
+                  {seccion.nombre}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </View>
+
+      <View className="p-5 pt-0">
         <View className="mb-3 flex-row items-center justify-between">
           <Text className="text-lg font-bold tracking-tight text-neutral-900">
-            Destacados
+            {buscando
+              ? `Resultados (${filtrados.length})`
+              : 'Destacados'}
           </Text>
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/(drawer)/productos')}
-          >
-            <Text className="text-[13px] font-semibold text-neutral-900 underline">
-              Ver todos
-            </Text>
-          </TouchableOpacity>
+          {!buscando && productos.length > DESTACADOS_COUNT && (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => router.push('/(drawer)/productos')}
+            >
+              <Text className="text-[13px] font-semibold text-neutral-900 underline">
+                Ver todos
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
+
+        {visibles.length > 0 ? (
+          <>
+            <View className="flex-row flex-wrap justify-between">
+              {visibles.map((producto) => (
+                <View key={producto.id} className="w-[48.5%]">
+                  <ProductCard producto={producto} />
+                </View>
+              ))}
+            </View>
+            {totalPaginas > 1 && (
+              <Paginador
+                pagina={paginaSegura}
+                totalPaginas={totalPaginas}
+                onChange={setPagina}
+              />
+            )}
+          </>
+        ) : (
+          <View className="items-center py-16">
+            <Text className="mb-3 text-4xl">🔍</Text>
+            <Text className="text-base font-semibold text-neutral-900">
+              Sin resultados
+            </Text>
+            <Text className="mt-1 text-sm text-neutral-500">
+              No encontramos "{busqueda}". Prueba con otra palabra.
+            </Text>
+          </View>
+        )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
-      >
-        {destacados.map((producto) => (
-          <TouchableOpacity
-            key={producto.id}
-            className="mr-3 w-40 overflow-hidden rounded-2xl border border-neutral-200 bg-white"
-            activeOpacity={0.8}
-            onPress={() => router.push(`/producto/${producto.id}`)}
-          >
-            <View className="h-36 w-full bg-neutral-100">
-              <ProductImage
-                uri={producto.imagen}
-                emoji={producto.emoji}
-                className="h-full w-full"
-                fallbackClassName="text-4xl"
-                label={producto.nombre}
-              />
-            </View>
-            <View className="p-3">
-              <Text
-                className="text-[13px] font-semibold leading-snug text-neutral-900"
-                numberOfLines={1}
-              >
-                {producto.nombre}
-              </Text>
-              <Text className="mt-0.5 text-[14px] font-bold text-neutral-900">
-                {formatoPrecio(producto.precio)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+      {!buscando && (
+        <View className="px-5">
+          <Text className="mt-6 text-center text-xs text-neutral-400">
+            {productos.length} productos disponibles · Envío a todo Chile
+          </Text>
+        </View>
+      )}
       </ScrollView>
 
-      <View className="mt-7 items-center px-5">
-        <Text className="text-xs text-neutral-400">
-          {productos.length} productos disponibles · Envío a todo Chile
-        </Text>
-      </View>
-    </ScrollView>
+      <FloatingCarrito />
+    </View>
   );
 }

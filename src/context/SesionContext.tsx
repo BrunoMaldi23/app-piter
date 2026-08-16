@@ -4,8 +4,37 @@ import React, {
   useMemo,
   useState,
 } from 'react';
+import { Platform } from 'react-native';
 
 export type Rol = 'admin' | 'cliente';
+
+const CLAVE_SESION = '@minimarket/sesion';
+
+function leerRolGuardado(): Rol | null {
+  try {
+    if (Platform.OS === 'web') {
+      const valor = localStorage.getItem(CLAVE_SESION);
+      return valor === 'admin' || valor === 'cliente' ? valor : null;
+    }
+  } catch {
+    // almacenamiento no disponible: ignorar
+  }
+  return null;
+}
+
+function guardarRol(rol: Rol | null) {
+  try {
+    if (Platform.OS === 'web') {
+      if (rol) {
+        localStorage.setItem(CLAVE_SESION, rol);
+      } else {
+        localStorage.removeItem(CLAVE_SESION);
+      }
+    }
+  } catch {
+    // almacenamiento no disponible: ignorar
+  }
+}
 
 interface SesionContextValue {
   rol: Rol | null;
@@ -22,13 +51,19 @@ export function SesionProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [rol, setRol] = useState<Rol | null>(null);
+  const [rol, setRol] = useState<Rol | null>(() => leerRolGuardado());
 
   const value = useMemo(
     () => ({
       rol,
-      iniciarSesion: setRol,
-      cerrarSesion: () => setRol(null),
+      iniciarSesion: (nuevoRol: Rol) => {
+        setRol(nuevoRol);
+        guardarRol(nuevoRol);
+      },
+      cerrarSesion: () => {
+        setRol(null);
+        guardarRol(null);
+      },
     }),
     [rol]
   );

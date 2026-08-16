@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { formatoPrecio } from '../../utils/formato';
@@ -14,11 +14,12 @@ import { useProductos } from '../../context/ProductosContext';
 import { useCarrito } from '../../context/CarritoContext';
 import { useFavoritos } from '../../context/FavoritosContext';
 import ProductImage from '../../components/ProductImage';
+import FloatingCarrito from '../../components/FloatingCarrito';
 
 export default function DetalleProducto() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { buscarProducto, buscarSeccion } = useProductos();
-  const { agregar, cantidadTotal } = useCarrito();
+  const { agregar } = useCarrito();
   const { esFavorito, alternar } = useFavoritos();
 
   const producto = id ? buscarProducto(id) : undefined;
@@ -44,21 +45,16 @@ export default function DetalleProducto() {
     Alert.alert(
       'Producto agregado',
       `${producto.nombre} se agregó a tu carrito.`,
-      [
-        { text: 'Seguir comprando', style: 'cancel' },
-        {
-          text: 'Ver carrito',
-          onPress: () => router.push('/(drawer)/carrito'),
-        },
-      ]
+      [{ text: 'Listo' }]
     );
   };
 
   return (
-    <ScrollView
-      className="flex-1 bg-neutral-50"
-      contentContainerStyle={{ paddingBottom: 40 }}
-    >
+    <View className="flex-1 bg-neutral-50">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
       <Stack.Screen options={{ title: producto.nombre }} />
 
       <View className="h-72 w-full bg-neutral-100">
@@ -138,23 +134,13 @@ export default function DetalleProducto() {
         >
           <Ionicons name="cart-outline" size={20} color={sinStock ? '#a3a3a3' : '#fff'} />
           <Text className="text-[15px] font-semibold text-white">
-            {sinStock ? 'Agotado' : 'Agregar al carrito'}
+            {sinStock ? 'Agotado' : 'Agregar'}
           </Text>
         </TouchableOpacity>
-
-        {cantidadTotal > 0 && (
-          <TouchableOpacity
-            className="mt-3 items-center py-2.5"
-            activeOpacity={0.7}
-            onPress={() => router.push('/(drawer)/carrito')}
-          >
-            <Text className="text-sm font-medium text-neutral-900 underline">
-              Ver carrito ({cantidadTotal}{' '}
-              {cantidadTotal === 1 ? 'producto' : 'productos'})
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
-    </ScrollView>
+      </ScrollView>
+
+      <FloatingCarrito />
+    </View>
   );
 }

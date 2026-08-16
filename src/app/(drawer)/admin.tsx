@@ -22,6 +22,78 @@ import ProductImage from '../../components/ProductImage';
 
 type Pestana = 'productos' | 'secciones';
 
+interface Stat {
+  label: string;
+  valor: string;
+  emoji: string;
+}
+
+interface TarjetaGestionProps {
+  emoji: string;
+  titulo: string;
+  subtitulo: string;
+  onPress: () => void;
+  onAgregar: () => void;
+  etiquetaAgregar: string;
+}
+
+function TarjetaGestion({
+  emoji,
+  titulo,
+  subtitulo,
+  onPress,
+  onAgregar,
+  etiquetaAgregar,
+}: TarjetaGestionProps) {
+  return (
+    <View className="mb-3 w-[48.5%] overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+      <TouchableOpacity
+        className="p-4"
+        activeOpacity={0.75}
+        onPress={onPress}
+      >
+        <View className="mb-3 h-11 w-11 items-center justify-center rounded-xl bg-neutral-100">
+          <Text className="text-2xl">{emoji}</Text>
+        </View>
+        <Text className="text-[16px] font-bold text-neutral-900">
+          {titulo}
+        </Text>
+        <Text className="mt-0.5 text-xs leading-4 text-neutral-400">
+          {subtitulo}
+        </Text>
+      </TouchableOpacity>
+      <View className="border-t border-neutral-100 p-2">
+        <TouchableOpacity
+          className="h-9 flex-row items-center justify-center gap-1.5 rounded-lg bg-neutral-900"
+          style={{ gap: 6 }}
+          activeOpacity={0.8}
+          onPress={onAgregar}
+          accessibilityLabel={`Agregar ${titulo.toLowerCase()}`}
+        >
+          <Ionicons name="add" size={16} color="#fff" />
+          <Text className="text-[13px] font-semibold text-white">
+            {etiquetaAgregar}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+function TarjetaStat({ emoji, label, valor }: Stat) {
+  return (
+    <View className="mb-3 w-[48.5%] rounded-2xl border border-neutral-200 bg-white p-3.5">
+      <View className="flex-row items-center justify-between">
+        <Text className="text-lg">{emoji}</Text>
+      </View>
+      <Text className="mt-2 text-xl font-bold tracking-tight text-neutral-900">
+        {valor}
+      </Text>
+      <Text className="mt-0.5 text-xs text-neutral-400">{label}</Text>
+    </View>
+  );
+}
+
 export default function Admin() {
   const { rol } = useSesion();
   const esAdmin = rol === 'admin';
@@ -53,6 +125,19 @@ export default function Admin() {
   const [editandoSeccion, setEditandoSeccion] = useState<
     Seccion | undefined
   >();
+
+  const stockTotal = productos.reduce((acc, p) => acc + p.stock, 0);
+  const valorInventario = productos.reduce(
+    (acc, p) => acc + p.precio * p.stock,
+    0
+  );
+
+  const stats: Stat[] = [
+    { label: 'Productos', valor: String(productos.length), emoji: '📦' },
+    { label: 'Categorías', valor: String(secciones.length), emoji: '🗂️' },
+    { label: 'Unidades en stock', valor: String(stockTotal), emoji: '📊' },
+    { label: 'Valor del inventario', valor: formatoPrecio(valorInventario), emoji: '💰' },
+  ];
 
   const abrirAgregarProducto = () => {
     setEditandoProducto(undefined);
@@ -138,137 +223,60 @@ export default function Admin() {
       <Text className="text-2xl font-bold tracking-tight text-neutral-900">
         Panel de control
       </Text>
-      <Text className="mt-1 mb-5 text-sm text-neutral-500">
-        Gestiona el catálogo público completo
+      <Text className="mt-1 mb-4 text-sm text-neutral-500">
+        Gestiona tu tienda desde aquí
       </Text>
 
-      <View className="mb-4 flex-row rounded-xl bg-neutral-200/60 p-1">
-        <TouchableOpacity
-          className={`h-10 flex-1 items-center justify-center rounded-lg ${
-            pestana === 'productos' ? 'bg-neutral-900' : ''
-          }`}
-          activeOpacity={0.7}
+      <View className="mb-5 flex-row flex-wrap justify-between">
+        {stats.map((stat) => (
+          <TarjetaStat key={stat.label} {...stat} />
+        ))}
+      </View>
+
+      <Text className="mb-3 text-xs font-semibold uppercase tracking-widest text-neutral-400">
+        Gestión
+      </Text>
+      <View className="mb-5 flex-row flex-wrap justify-between">
+        <TarjetaGestion
+          emoji="📦"
+          titulo="Productos"
+          subtitulo={`${productos.length} productos en el catálogo`}
+          etiquetaAgregar="Agregar producto"
           onPress={() => setPestana('productos')}
-        >
-          <Text
-            className={`text-sm font-semibold ${
-              pestana === 'productos' ? 'text-white' : 'text-neutral-500'
-            }`}
-          >
-            Productos ({productos.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className={`h-10 flex-1 items-center justify-center rounded-lg ${
-            pestana === 'secciones' ? 'bg-neutral-900' : ''
-          }`}
-          activeOpacity={0.7}
+          onAgregar={abrirAgregarProducto}
+        />
+        <TarjetaGestion
+          emoji="🗂️"
+          titulo="Categorías"
+          subtitulo={`${secciones.length} secciones para clasificar`}
+          etiquetaAgregar="Agregar categoría"
           onPress={() => setPestana('secciones')}
+          onAgregar={abrirAgregarSeccion}
+        />
+      </View>
+
+      <View className="mb-3 flex-row items-center justify-between">
+        <Text className="text-lg font-bold tracking-tight text-neutral-900">
+          {pestana === 'productos' ? 'Productos' : 'Categorías'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => setPestana(pestana === 'productos' ? 'secciones' : 'productos')}
+          activeOpacity={0.7}
         >
-          <Text
-            className={`text-sm font-semibold ${
-              pestana === 'secciones' ? 'text-white' : 'text-neutral-500'
-            }`}
-          >
-            Secciones ({secciones.length})
+          <Text className="text-[13px] font-semibold text-neutral-900 underline">
+            Ver {pestana === 'productos' ? 'categorías' : 'productos'}
           </Text>
         </TouchableOpacity>
       </View>
 
       {pestana === 'productos' ? (
-        <>
-          <TouchableOpacity
-            className="mb-4 h-12 flex-row items-center justify-center gap-2 rounded-xl bg-neutral-900"
-            activeOpacity={0.8}
-            onPress={abrirAgregarProducto}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-            <Text className="text-[15px] font-semibold text-white">
-              Agregar producto
-            </Text>
-          </TouchableOpacity>
-
-          <FlatList
-            data={productos}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => {
-              const seccion = buscarSeccion(item.seccionId);
-              return (
-                <View className="mb-3 flex-row items-center rounded-2xl border border-neutral-200 bg-white p-3.5">
-                  <View className="mr-3.5 h-14 w-14 overflow-hidden rounded-xl bg-neutral-100">
-                    <ProductImage
-                      uri={item.imagen}
-                      emoji={item.emoji}
-                      className="h-full w-full"
-                      fallbackClassName="text-3xl"
-                      label={item.nombre}
-                    />
-                  </View>
-
-                  <View className="flex-1">
-                    <Text
-                      className="text-[15px] font-semibold text-neutral-900"
-                      numberOfLines={1}
-                    >
-                      {item.nombre}
-                    </Text>
-                    <Text className="mt-0.5 text-xs text-neutral-400">
-                      {seccion
-                        ? `${INFO_CATEGORIAS[seccion.categoria].nombre} · ${seccion.nombre} · `
-                        : 'Sección eliminada · '}
-                      {formatoPrecio(item.precio)} · stock {item.stock}
-                    </Text>
-                  </View>
-
-                  <View className="ml-3 flex-row items-center gap-4">
-                    <TouchableOpacity
-                      onPress={() => abrirEditarProducto(item)}
-                      activeOpacity={0.7}
-                      accessibilityLabel={`Editar ${item.nombre}`}
-                    >
-                      <Ionicons
-                        name="create-outline"
-                        size={20}
-                        color="#404040"
-                      />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => confirmarEliminarProducto(item)}
-                      activeOpacity={0.7}
-                      accessibilityLabel={`Eliminar ${item.nombre}`}
-                    >
-                      <Ionicons
-                        name="trash-outline"
-                        size={20}
-                        color="#c0392b"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              );
-            }}
-          />
-        </>
-      ) : (
-        <>
-          <TouchableOpacity
-            className="mb-4 h-12 flex-row items-center justify-center gap-2 rounded-xl bg-neutral-900"
-            activeOpacity={0.8}
-            onPress={abrirAgregarSeccion}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-            <Text className="text-[15px] font-semibold text-white">
-              Agregar sección
-            </Text>
-          </TouchableOpacity>
-
-          <FlatList
-            data={secciones}
-            keyExtractor={(item) => item.id}
-            showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
+        <FlatList
+          data={productos}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => {
+            const seccion = buscarSeccion(item.seccionId);
+            return (
               <View className="mb-3 flex-row items-center rounded-2xl border border-neutral-200 bg-white p-3.5">
                 <View className="mr-3.5 h-14 w-14 overflow-hidden rounded-xl bg-neutral-100">
                   <ProductImage
@@ -288,17 +296,16 @@ export default function Admin() {
                     {item.nombre}
                   </Text>
                   <Text className="mt-0.5 text-xs text-neutral-400">
-                    {INFO_CATEGORIAS[item.categoria].nombre} ·{' '}
-                    {productosDeSeccion(item.id).length}{' '}
-                    {productosDeSeccion(item.id).length === 1
-                      ? 'producto'
-                      : 'productos'}
+                    {seccion
+                      ? `${INFO_CATEGORIAS[seccion.categoria].nombre} · ${seccion.nombre} · `
+                      : 'Sección eliminada · '}
+                    {formatoPrecio(item.precio)} · stock {item.stock}
                   </Text>
                 </View>
 
                 <View className="ml-3 flex-row items-center gap-4">
                   <TouchableOpacity
-                    onPress={() => abrirEditarSeccion(item)}
+                    onPress={() => abrirEditarProducto(item)}
                     activeOpacity={0.7}
                     accessibilityLabel={`Editar ${item.nombre}`}
                   >
@@ -310,7 +317,7 @@ export default function Admin() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => confirmarEliminarSeccion(item)}
+                    onPress={() => confirmarEliminarProducto(item)}
                     activeOpacity={0.7}
                     accessibilityLabel={`Eliminar ${item.nombre}`}
                   >
@@ -322,9 +329,92 @@ export default function Admin() {
                   </TouchableOpacity>
                 </View>
               </View>
-            )}
-          />
-        </>
+            );
+          }}
+          ListEmptyComponent={
+            <View className="items-center py-16">
+              <Text className="mb-3 text-4xl">📦</Text>
+              <Text className="text-base font-semibold text-neutral-900">
+                Sin productos
+              </Text>
+              <Text className="mt-1 text-sm text-neutral-500">
+                Usa "Agregar producto" para crear el primero.
+              </Text>
+            </View>
+          }
+        />
+      ) : (
+        <FlatList
+          data={secciones}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View className="mb-3 flex-row items-center rounded-2xl border border-neutral-200 bg-white p-3.5">
+              <View className="mr-3.5 h-14 w-14 overflow-hidden rounded-xl bg-neutral-100">
+                <ProductImage
+                  uri={item.imagen}
+                  emoji={item.emoji}
+                  className="h-full w-full"
+                  fallbackClassName="text-3xl"
+                  label={item.nombre}
+                />
+              </View>
+
+              <View className="flex-1">
+                <Text
+                  className="text-[15px] font-semibold text-neutral-900"
+                  numberOfLines={1}
+                >
+                  {item.nombre}
+                </Text>
+                <Text className="mt-0.5 text-xs text-neutral-400">
+                  {INFO_CATEGORIAS[item.categoria].nombre} ·{' '}
+                  {productosDeSeccion(item.id).length}{' '}
+                  {productosDeSeccion(item.id).length === 1
+                    ? 'producto'
+                    : 'productos'}
+                </Text>
+              </View>
+
+              <View className="ml-3 flex-row items-center gap-4">
+                <TouchableOpacity
+                  onPress={() => abrirEditarSeccion(item)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Editar ${item.nombre}`}
+                >
+                  <Ionicons
+                    name="create-outline"
+                    size={20}
+                    color="#404040"
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => confirmarEliminarSeccion(item)}
+                  activeOpacity={0.7}
+                  accessibilityLabel={`Eliminar ${item.nombre}`}
+                >
+                  <Ionicons
+                    name="trash-outline"
+                    size={20}
+                    color="#c0392b"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          ListEmptyComponent={
+            <View className="items-center py-16">
+              <Text className="mb-3 text-4xl">🗂️</Text>
+              <Text className="text-base font-semibold text-neutral-900">
+                Sin categorías
+              </Text>
+              <Text className="mt-1 text-sm text-neutral-500">
+                Usa "Agregar categoría" para crear la primera.
+              </Text>
+            </View>
+          }
+        />
       )}
 
       <Modal
